@@ -26,5 +26,4 @@ The project maintains context across prompts and generates a structured migratio
 This experiment demonstrates how AI can assist with **data platform migration planning**, reducing manual effort when translating legacy Qlik Sense scripts into modern lakehouse architectures.
 
 ## Status
-Part of my **Claude AI learning experiments**.  
-Prompts and screenshots will be added separately.
+Built while learning Claude AI.

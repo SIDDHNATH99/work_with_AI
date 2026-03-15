@@ -17,5 +17,8 @@ Chat
 ## Learning Outcome
 Claude can generate functional UI tools from structured prompts.
 
+## Status
+Built while learning Claude AI.
+
 ## Prompt used to generate the tool
 Create One AI email generator which can be used by various small business owners or product owners to sell their products or to do the marketing of their product in Professional & clean way

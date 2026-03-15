@@ -17,5 +17,8 @@ Artifacts
 ## Learning Outcome
 Claude can generate functional UI tools from structured prompts.
 
+## Status
+Built while learning Claude AI.
+
 ## Prompt used to generate the tool
 Create One budgeting tool, Add income & expenses, Budget categories, Charts & visualizations, Monthly summary in Professional and finance-like style
