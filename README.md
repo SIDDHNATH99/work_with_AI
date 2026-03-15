@@ -1,2 +1,29 @@
-# work_with_AI
-I will be adding AI-related projects and tools that I have worked on to this repository. My aim is to learn about AI in day-to-day activities plus implement simple projects with it.
+# AI Learning Lab
+
+This repository documents my experiments and projects while learning AI tools such as Claude.
+
+## Courses Completed
+- Claude 101
+- AI Fluency - (Learning)
+
+## Projects
+
+### Budgeting Calculator
+Simple budgeting tool created using Claude Artifacts.
+
+### Qlik Sense → MS Fabric Converter
+Experiment using Claude Projects to convert Qlik scripts into Microsoft Fabric architecture.
+
+### Python Backend Executable Builder
+Claude Skill that helps package Python backend applications into Windows executables.
+
+### AI Email Generator
+AI tool that helps small businesses generate emails using AI.
+
+## Concepts Learned
+- Claude Artifacts
+- Claude Projects
+- Claude Skills
+- AI Fluency 4D Framework
+
+This repository will continue to grow as I explore more AI tools and build additional projects.
