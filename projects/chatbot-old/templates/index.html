@@ -31,29 +31,6 @@
       --sidebar-w:    272px;
     }
 
-    .light-theme {
-      --bg:           #fafafa;
-      --sidebar-bg:   #f0f0f0;
-      --surface:      #ffffff;
-      --surface-2:    #f8f9fa;
-      --surface-3:    #e9ecef;
-      --border:       rgba(0,0,0,0.125);
-      --border-hover: rgba(0,0,0,0.15);
-      --text:         #212529;
-      --text-2:       #495057;
-      --text-3:       #6c757d;
-      --accent:       #0d6efd;
-      --accent-light: #66b2ff;
-      --accent-dim:   rgba(13,110,253,0.1);
-      --accent-dim2:  rgba(13,110,253,0.15);
-      --success:      #198754;
-      --danger:       #dc3545;
-      --radius:       12px;
-      --font:         'Inter', system-ui, sans-serif;
-      --font-mono:    'JetBrains Mono', monospace;
-      --sidebar-w:    272px;
-    }
-
     html, body { height: 100%; }
 
     body {
@@ -93,84 +70,6 @@
       justify-content: space-between;
       gap: 10px;
       flex-shrink: 0;
-      position: relative;
-    }
-
-    /* Theme toggle */
-    #theme-toggle {
-      width: 36px; height: 36px; border-radius: 8px;
-      background: var(--surface-2);
-      border: 1px solid var(--border-hover);
-      color: var(--text-2);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s;
-      position: absolute;
-      right: 16px;
-      top: 20px;
-    }
-
-    #theme-toggle:hover {
-      background: var(--surface-3);
-      color: var(--text);
-    }
-
-    #theme-toggle.sun {
-      background: var(--accent-dim);
-      color: var(--accent-light);
-    }
-
-    #theme-toggle.sun:hover {
-      background: var(--accent-dim2);
-    }
-
-    /* Search box */
-    #search-chats {
-      position: absolute;
-      bottom: 16px;
-      left: 16px;
-      right: 16px;
-      display: flex;
-      gap: 8px;
-    }
-
-    #search-input {
-      flex: 1;
-      padding: 8px 12px;
-      background: var(--surface);
-      border: 1px solid var(--border-hover);
-      border-radius: 8px;
-      color: var(--text);
-      font-size: 13px;
-      outline: none;
-    }
-
-    #search-input::placeholder {
-      color: var(--text-3);
-    }
-
-    #search-input:focus {
-      border-color: rgba(124,111,247,0.45);
-      box-shadow: 0 0 0 3px rgba(124,111,247,0.08);
-    }
-
-    #search-btn {
-      width: 36px; height: 36px; border-radius: 8px;
-      background: var(--accent-dim);
-      border: 1px solid var(--border-hover);
-      color: var(--accent-light);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s;
-    }
-
-    #search-btn:hover {
-      background: var(--accent-dim2);
-      border-color: rgba(124,111,247,0.3);
-    }
-
-    #search-btn:active {
-      background: var(--accent);
     }
 
     .logo {
@@ -807,25 +706,6 @@
       </div>
       <span class="logo-text">Cortex<span>Chat</span></span>
     </a>
-
-    <!-- Theme toggle -->
-    <button id="theme-toggle" class="sun" aria-label="Toggle theme" title="Switch to light mode">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="5"/>
-        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-      </svg>
-    </button>
-  </div>
-
-  <!-- Search chats -->
-  <div id="search-chats">
-    <input type="text" id="search-input" placeholder="Search chats..." onkeypress="if(event.key==='Enter') searchChats()">
-    <button id="search-btn" onclick="searchChats()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"/>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-    </button>
   </div>
 
   <!-- New Chat -->
@@ -970,13 +850,6 @@
 
   async function initialize() {
     try {
-      // Load theme preference
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme === 'light' || (!savedTheme && window.matchMedia('(prefers-color-scheme: light)').matches)) {
-        document.documentElement.classList.add('light-theme');
-        updateThemeIcon();
-      }
-
       const data = await fetch('/chats').then(r => r.json());
       activeChatId = data.active_chat_id;
       renderSidebarChats(data.chats, activeChatId);
@@ -990,35 +863,6 @@
       }
     } catch (e) {
       console.error('Init failed:', e);
-    }
-  }
-
-  // ---- Theme toggle ----
-  function toggleTheme() {
-    const isLight = document.documentElement.classList.toggle('light-theme');
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
-    updateThemeIcon();
-  }
-
-  function updateThemeIcon() {
-    const themeToggle = document.getElementById('theme-toggle');
-    const isLight = document.documentElement.classList.contains('light-theme');
-    themeToggle.className = isLight ? 'moon' : 'sun';
-    themeToggle.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
-    themeToggle.title = isLight ? 'Switch to dark mode' : 'Switch to light mode';
-
-    // Update icon based on theme
-    if (isLight) {
-      themeToggle.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>`;
-    } else {
-      themeToggle.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5"/>
-          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-        </svg>`;
     }
   }
 
@@ -1134,27 +978,6 @@
       }
     } catch (e) {
       console.error('Failed to delete chat:', e);
-    }
-  }
-
-  // ---- Search chats ----
-  async function searchChats() {
-    const query = document.getElementById('search-input').value.trim();
-    try {
-      const data = await fetch(`/chats/search?q=${encodeURIComponent(query)}`).then(r => r.json());
-      renderSidebarChats(data.chats, data.active_chat_id);
-      if (data.active_chat_id && data.active_history && data.active_history.length > 0) {
-        const active = data.chats.find(c => c.id === data.active_chat_id);
-        if (active) {
-          chatTitle.textContent = active.title;
-          chatTitle.classList.remove('placeholder');
-        }
-        renderHistory(data.active_history);
-      } else {
-        showEmptyState();
-      }
-    } catch (e) {
-      console.error('Failed to search chats:', e);
     }
   }
 
