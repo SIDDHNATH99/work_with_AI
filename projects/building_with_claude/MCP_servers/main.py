@@ -22,7 +22,6 @@ assert anthropic_api_key, (
     "Error: ANTHROPIC_API_KEY cannot be empty. Update .env"
 )
 
-
 async def main():
     claude_service = Claude(model=claude_model)
 
