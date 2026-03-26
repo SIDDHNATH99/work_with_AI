@@ -4,7 +4,6 @@ from mcp.server.fastmcp.prompts import base
 
 mcp = FastMCP("DocumentMCP", log_level="ERROR")
 
-
 docs = {
     "deposition.md": "This deposition covers the testimony of Angela Smith, P.E.",
     "report.pdf": "The report details the state of a 20m condenser tower.",

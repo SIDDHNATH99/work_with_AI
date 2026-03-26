@@ -83,13 +83,11 @@ Use the @ symbol followed by a document ID to include document content in your q
 > Tell me about @deposition.md
 ```
 
-### Commands
+* [X] Commands
 
 Use the / prefix to execute commands defined in the MCP server:
 
-```
 > /summarize deposition.md
-```
 
 Commands will auto-complete when you press Tab.
 
