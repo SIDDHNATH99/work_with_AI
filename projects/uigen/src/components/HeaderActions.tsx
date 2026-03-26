@@ -124,10 +124,9 @@ export function HeaderActions({ user, projectId }: HeaderActionsProps) {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[300px] p-0" align="end">
-            <Command>
+            <Command shouldFilter={false} key={String(projectsOpen)}>
               <CommandInput
                 placeholder="Search projects..."
-                value={searchQuery}
                 onValueChange={setSearchQuery}
               />
               <CommandList>

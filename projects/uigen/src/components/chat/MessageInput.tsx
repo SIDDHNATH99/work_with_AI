@@ -11,8 +11,8 @@ interface MessageInputProps {
 }
 
 export function MessageInput({
-  input,
-  handleInputChange,
+  input = "",
+  handleInputChange = () => {},
   handleSubmit,
   isLoading,
 }: MessageInputProps) {
