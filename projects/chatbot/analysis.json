@@ -1,0 +1,42 @@
+{
+  "summary": "A FastAPI-based chatbot application using Azure OpenAI for AI responses. Features include multi-chat management, file upload with text extraction for various formats (PDF, Excel, Word, PowerPoint, images, text), persistent chat storage per session via JSON files, and a web interface served with Jinja2 templates. The application is designed to run in both development and production modes.",
+  "architecture": "The application consists of two main Python files: main.py contains the FastAPI application with all routes, session management, and AI integration logic; production.py serves as the entry point for production deployment with Uvicorn. Session middleware tracks user sessions, and each session's chat data is stored in individual JSON files under the 'chats_data' directory. Routes handle chat creation, listing, searching, switching, deletion, file upload, and message sending. The AI interaction uses the OpenAI client configured for Azure OpenAI endpoints, with conversation history managed and trimmed to maintain API efficiency.",
+  "key_files": [
+    "main.py",
+    "production.py",
+    "requirements.txt",
+    ".env",
+    "templates/index.html"
+  ],
+  "dependencies": [
+    "fastapi",
+    "uvicorn",
+    "openai",
+    "python-dotenv",
+    "pydantic",
+    "python-multipart",
+    "jinja2",
+    "pypdf",
+    "openpyxl",
+    "xlrd",
+    "python-docx",
+    "python-pptx"
+  ],
+  "issues": [
+    "Hardcoded and weak session middleware secret key: 'super-secret-key-change-this'",
+    "Session storage uses individual JSON files which may not scale well for many sessions or large chat histories",
+    "Upload function reads entire file into memory; while size-limited, could be improved with streaming for larger files",
+    "No apparent rate limiting on API endpoints which could lead to abuse",
+    "Environment variables are loaded from .env file; ensure this is not committed to version control"
+  ],
+  "suggestions": [
+    "Replace hardcoded secret key with a strong key from environment variable",
+    "Consider migrating session storage to a database (e.g., SQLite, Redis) for better scalability",
+    "Implement streaming file upload for handling larger files within size limits",
+    "Add rate limiting to API endpoints to prevent abuse",
+    "Add .env to .gitignore if not already present, and use a .env.example for required variables",
+    "Add input validation and sanitization for file uploads to prevent malicious file types",
+    "Consider adding logging rotation for production logs",
+    "Implement health check endpoint for monitoring"
+  ]
+}
