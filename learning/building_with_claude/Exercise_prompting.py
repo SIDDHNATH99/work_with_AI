@@ -662,12 +662,11 @@ dataset = evaluator.generate_dataset(
 # This function is executed once for each test case
 def run_prompt(prompt_inputs):
     prompt = f"""
-    Generate a one-day meal plan for an athlete that meets their dietary restrictions.
+    Generate a one-day meal plan for an athlete.
     <description>
     - Height: {prompt_inputs["height"]} 
     - Weight: {prompt_inputs["weight"]} 
     - Goal: {prompt_inputs["goal"]} 
-    - Dietary restrictions: {prompt_inputs["restrictions"]} 
     </description>
     """
     messages = []

@@ -58,8 +58,11 @@ def chat(
     if system:
         params["system"] = system
 
-    message = client.messages.stream(**params)
-    return message
+    with client.messages.stream(**params) as stream:
+        for text in stream.text_stream:
+            print(text, end="", flush=True)
+        print()
+        return stream.get_final_message()
 
 
 def text_from_message(message):
@@ -70,14 +73,12 @@ messages = []
 while True:
     user_input = input("You: ").strip()
 
-    if user_input.lower() == ("quit" , "exit"):
+    if user_input.lower() in ("quit", "exit"):
         break
 
-    add_user_message(messages , user_input.lower())
+    add_user_message(messages, user_input)
 
-    response = chat(messages, thinking=True)
+    print("Claude: ", end="")
+    response = chat(messages, thinking=False)
 
-    add_assistant_message(messages , response)
-
-    # print("response" , text_from_message(response))
-    print("response" , response)
+    add_assistant_message(messages, response)
