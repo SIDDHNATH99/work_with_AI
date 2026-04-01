@@ -5,6 +5,7 @@ itsdangerous>=2.1.2
 jinja2>=3.1.4
 python-multipart>=0.0.9
 python-dotenv>=1.0.0
+openai>=1.30.0
 google-generativeai>=0.7.0
 google-api-core>=2.19.0
 pypdf>=4.0.0
@@ -12,3 +13,9 @@ openpyxl>=3.1.0
 xlrd>=2.0.1
 python-docx>=1.1.0
 python-pptx>=0.6.23
+
+# ── Agent / agentic capabilities ────────────────────────────────────────────
+httpx>=0.27.0                  # URL fetching for fetch_url tool
+ddgs>=1.0.0                    # Free web search, no API key needed
+mcp>=1.0.0                     # Model Context Protocol (optional MCP servers)
+psycopg2-binary>=2.9.0         # PostgreSQL driver for postgres MCP server

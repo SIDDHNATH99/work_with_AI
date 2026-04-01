@@ -396,6 +396,54 @@
       flex-shrink: 0;
     }
 
+    /* Agent selector */
+    .agent-selector select {
+      font-family: var(--font);
+      font-size: 12px;
+      color: var(--text-2);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s, color 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 22px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238f8fa8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 6px center;
+    }
+    .agent-selector select:hover, .agent-selector select:focus {
+      border-color: rgba(124,111,247,0.4);
+      color: var(--text);
+    }
+
+    /* Tool usage badges */
+    .tools-badge {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .tool-chip {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent-light);
+      background: var(--accent-dim);
+      border: 1px solid rgba(124,111,247,0.2);
+      border-radius: 20px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+    .agent-chip {
+      font-size: 10px;
+      color: var(--text-3);
+      font-style: italic;
+      padding-top: 4px;
+    }
+
     #token-counter {
       font-family: var(--font-mono);
       font-size: 10.5px;
@@ -944,6 +992,17 @@
     <div id="chat-title" class="placeholder">New conversation</div>
 
     <div class="header-right">
+      <!-- Agent mode selector -->
+      <div class="agent-selector">
+        <select id="agent-mode" title="Select agent mode" onchange="onAgentModeChange(this.value)">
+          <option value="coordinator">&#x1F9E0; Coordinator</option>
+          <option value="research">&#x1F50D; Research</option>
+          <option value="coder">&#x1F4BB; Coder</option>
+          <option value="analyst">&#x1F4CA; Analyst</option>
+          <option value="assistant">&#x1F4AC; Assistant</option>
+          <option value="none">&#x26A1; Fast (no tools)</option>
+        </select>
+      </div>
       <div id="token-counter">0 tokens</div>
       <button id="clear-btn" onclick="clearChat()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1075,14 +1134,20 @@
   const chatTitle    = document.getElementById('chat-title');
   const sidebarChats = document.getElementById('sidebar-chats');
 
-  let activeChatId   = null;
-  let totalTokens    = 0;
-  let attachedText   = null;   // extracted document text
-  let attachedName   = null;   // filename for display
-  let attachedImageUrl = null; // base64 data URL for vision
+  let activeChatId    = null;
+  let totalTokens     = 0;
+  let attachedText    = null;   // extracted document text
+  let attachedName    = null;   // filename for display
+  let attachedImageUrl = null;  // base64 data URL for vision
+  let currentAgentMode = 'coordinator'; // active agent mode
 
   // ---- Initialise on load ----
   window.addEventListener('DOMContentLoaded', initialize);
+
+  function onAgentModeChange(mode) {
+    currentAgentMode = mode;
+    localStorage.setItem('agentMode', mode);
+  }
 
   async function initialize() {
     try {
@@ -1091,6 +1156,20 @@
       if (savedTheme === 'light' || (!savedTheme && window.matchMedia('(prefers-color-scheme: light)').matches)) {
         document.documentElement.classList.add('light-theme');
         updateThemeIcon();
+      }
+
+      // Load saved agent mode preference
+      const savedMode = localStorage.getItem('agentMode');
+      if (savedMode) {
+        const sel = document.getElementById('agent-mode');
+        if (sel) { sel.value = savedMode; currentAgentMode = savedMode; }
+      } else {
+        // Load server default from /config
+        try {
+          const cfg = await fetch('/config').then(r => r.json());
+          const sel = document.getElementById('agent-mode');
+          if (sel && cfg.agent_mode) { sel.value = cfg.agent_mode; currentAgentMode = cfg.agent_mode; }
+        } catch (_) {}
       }
 
       const data = await fetch('/chats').then(r => r.json());
@@ -1624,7 +1703,7 @@
       const res  = await fetch('/newchat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, chat_id: activeChatId, image_url: imageUrlToSend })
+        body: JSON.stringify({ message, chat_id: activeChatId, image_url: imageUrlToSend, agent_mode: currentAgentMode })
       });
       const data = await res.json();
       typingEl.remove();
@@ -1632,7 +1711,25 @@
       if (data.error) {
         addMessage('assistant', `Error: ${data.error}`);
       } else {
-        addMessage('assistant', data.reply);
+        const bubble = addMessage('assistant', data.reply);
+        // Show tool usage badges below the message
+        if (data.tools_used && data.tools_used.length > 0) {
+          const badgeDiv = document.createElement('div');
+          badgeDiv.className = 'tools-badge';
+          data.tools_used.forEach(t => {
+            const chip = document.createElement('span');
+            chip.className = 'tool-chip';
+            chip.textContent = '\uD83D\uDD27 ' + t;
+            badgeDiv.appendChild(chip);
+          });
+          if (data.agent_used) {
+            const agentSpan = document.createElement('div');
+            agentSpan.className = 'agent-chip';
+            agentSpan.textContent = `agent: ${data.agent_used}  |  steps: ${data.iterations}`;
+            badgeDiv.appendChild(agentSpan);
+          }
+          bubble.parentNode.insertBefore(badgeDiv, bubble.nextSibling);
+        }
         totalTokens = data.tokens_used;
         tokenCounter.textContent = `${totalTokens.toLocaleString()} tokens`;
         activeChatId = data.chat_id;

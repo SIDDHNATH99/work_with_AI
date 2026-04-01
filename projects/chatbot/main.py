@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+load_dotenv()
 import json
 import logging
 import pathlib
@@ -13,17 +15,25 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 from openai import OpenAI
-from dotenv import load_dotenv
-
-load_dotenv()
+from agents.coordinator import init_coordinator, create_agent
+from tools.registry import get_tools_for_agent
+from cortex_mcp.client import initialize_mcp_tools, get_mcp_tool_definitions
+# ── Agentic loop via BaseAgent ─────────────────────────────────
+from agents.coordinator import create_agent
+from cortex_mcp.client import get_mcp_tool_definitions
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("✅ Python server has started!")
+    # Initialise MCP servers (gracefully skips if not configured)
+    await initialize_mcp_tools()
+    # Share the OpenAI client + model with the agent coordinator
+    init_coordinator(client, MODEL_NAME, INFERENCE)
+    print(" Python server has started!")
     print("🚀 Running on http://localhost:8001")
+    print(f"🤖 Agent mode: {AGENT_MODE}  |  Tools enabled: {ENABLE_TOOLS}")
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -38,10 +48,15 @@ templates = Jinja2Templates(directory="templates")
 MAX_HISTORY = 40
 MODEL_NAME  = os.getenv("AZURE_OPENAI_MODEL_NAME", "mistral-small-2503")
 
+# Agent / tool settings
+ENABLE_TOOLS = os.getenv("ENABLE_TOOLS", "true").lower() == "true"
+AGENT_MODE   = os.getenv("AGENT_MODE", "coordinator")   # none | assistant | research | coder | analyst | coordinator
+MAX_TOOL_ITERATIONS = int(os.getenv("MAX_TOOL_ITERATIONS", "10"))
+
 # Inference parameters — tune here to change response behaviour
 INFERENCE = {
-    "temperature":       float(os.getenv("AI_TEMPERATURE",        "0.3")),   # lower = more factual / deterministic
-    "top_p":             float(os.getenv("AI_TOP_P",              "0.9")),   # nucleus sampling threshold
+    "temperature":       float(os.getenv("AI_TEMPERATURE",        "0.0")),   # lower = more factual / deterministic
+    "top_p":             float(os.getenv("AI_TOP_P",              "1.0")),   # must be 1.0 when temperature=0 (greedy sampling)
     "frequency_penalty": float(os.getenv("AI_FREQUENCY_PENALTY", "0.1")),   # reduce word repetition
     "presence_penalty":  float(os.getenv("AI_PRESENCE_PENALTY",  "0.0")),   # don't force new topics
     "max_tokens":        int(os.getenv("AI_MAX_TOKENS",           "4096")),  # cap per response
@@ -96,6 +111,7 @@ class ChatRequest(BaseModel):
     message: str
     chat_id: Optional[str] = None
     image_url: Optional[str] = None   # base64 data URL for vision (validated server-side)
+    agent_mode: Optional[str] = None  # overrides server default per-request
 
 class ChatResponse(BaseModel):
     reply: str
@@ -103,6 +119,9 @@ class ChatResponse(BaseModel):
     history_length: int
     chat_id: str
     chat_title: str
+    tools_used: Optional[List[str]] = None
+    agent_used: Optional[str] = None
+    iterations: Optional[int] = None
 
 class ClearResponse(BaseModel):
     status: str
@@ -174,14 +193,14 @@ def create_chat_in_store(store: dict) -> str:
     return chat_id
 
 # -------------------- ROUTES --------------------
-# ✅ UI Page
+#  UI Page
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     ensure_session(request)
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-# ✅ List all chats
+#  List all chats
 @app.get("/chats", response_model=ChatsResponse)
 async def list_chats(request: Request):
     store = get_store(request)
@@ -206,7 +225,7 @@ async def list_chats(request: Request):
     return ChatsResponse(chats=chat_list, active_chat_id=active_id, active_history=active_history)
 
 
-# ✅ Search chats
+#  Search chats
 @app.get("/chats/search", response_model=ChatsResponse)
 async def search_chats(request: Request, q: str):
     store = get_store(request)
@@ -275,7 +294,7 @@ async def search_chats(request: Request, q: str):
     return ChatsResponse(chats=chat_list, active_chat_id=active_id, active_history=active_history)
 
 
-# ✅ Create new chat (defined before /chats/{chat_id}/... to avoid route conflict)
+#  Create new chat (defined before /chats/{chat_id}/... to avoid route conflict)
 @app.post("/chats/new", response_model=NewChatResponse)
 async def new_chat_session(request: Request):
     store = get_store(request)
@@ -284,7 +303,7 @@ async def new_chat_session(request: Request):
     return NewChatResponse(chat_id=chat_id)
 
 
-# ✅ Switch to a specific chat
+#  Switch to a specific chat
 @app.post("/chats/{chat_id}/switch", response_model=SwitchChatResponse)
 async def switch_chat(request: Request, chat_id: str):
     store = get_store(request)
@@ -295,7 +314,7 @@ async def switch_chat(request: Request, chat_id: str):
     return SwitchChatResponse(chat_id=chat_id, history=store["chats"][chat_id].get("history", []))
 
 
-# ✅ Delete a chat
+#  Delete a chat
 @app.delete("/chats/{chat_id}")
 async def delete_chat(request: Request, chat_id: str):
     store = get_store(request)
@@ -308,7 +327,7 @@ async def delete_chat(request: Request, chat_id: str):
     return {"status": "deleted"}
 
 
-# ✅ Upload a file — returns extracted text (documents) or base64 data URL (images)
+#  Upload a file — returns extracted text (documents) or base64 data URL (images)
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     import io, base64
@@ -449,7 +468,15 @@ def _prepare_history_for_api(history: list) -> list:
     return result
 
 
-# ✅ Send message (creates chat automatically if none active)
+def _clean_response(text: str) -> str:
+    """Remove reference tags and other formatting artifacts from API responses."""
+    import re
+    # Remove [REF]...[/REF] tags
+    text = re.sub(r'\[REF\].*?\[/REF\]', '', text, flags=re.DOTALL)
+    return text.strip()
+
+
+#  Send message (creates chat automatically if none active)
 @app.post("/newchat", response_model=ChatResponse)
 async def send_message(request: Request, body: ChatRequest):
     session_id = ensure_session(request)
@@ -493,21 +520,54 @@ async def send_message(request: Request, body: ChatRequest):
     # Prepend system prompt
     api_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + api_messages
 
-    try:
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=api_messages,
-            temperature=INFERENCE["temperature"],
-            top_p=INFERENCE["top_p"],
-            frequency_penalty=INFERENCE["frequency_penalty"],
-            presence_penalty=INFERENCE["presence_penalty"],
-            max_tokens=INFERENCE["max_tokens"],
-        )
-        assistant_message = response.choices[0].message.content
-        tokens_used = response.usage.total_tokens if response.usage else 0
-    except Exception:
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail="OpenAI API Error")
+    # ── Determine effective agent mode ────────────────────────────────
+    effective_mode = (body.agent_mode or AGENT_MODE).lower()
+    use_tools = ENABLE_TOOLS and effective_mode not in ("none", "assistant")
+
+    tools_used: list[str] = []
+    iterations: int = 1
+    tokens_used: int = 0
+
+    if use_tools:
+
+        agent = create_agent(effective_mode)
+
+        # Append any registered MCP tools to the agent's tool list
+        mcp_defs = get_mcp_tool_definitions()
+        if mcp_defs:
+            agent.tools = agent.tools + mcp_defs
+
+        agent.max_iterations = MAX_TOOL_ITERATIONS
+
+        try:
+            result = agent.run(api_messages[1:], extra_context="")  # skip system prompt (agent injects its own)
+            assistant_message = result["reply"]
+            tokens_used       = result.get("tokens_used", 0)
+            tools_used        = result.get("tools_used", [])
+            iterations        = result.get("iterations", 1)
+        except Exception:
+            logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail="Agent error")
+    else:
+        # ── Plain (non-agentic) completion ─────────────────────────────
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=api_messages,
+                temperature=INFERENCE["temperature"],
+                top_p=INFERENCE["top_p"],
+                frequency_penalty=INFERENCE["frequency_penalty"],
+                presence_penalty=INFERENCE["presence_penalty"],
+                max_tokens=INFERENCE["max_tokens"],
+            )
+            assistant_message = response.choices[0].message.content
+            tokens_used = response.usage.total_tokens if response.usage else 0
+        except Exception:
+            logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail="OpenAI API Error")
+
+    # Clean response of reference tags
+    assistant_message = _clean_response(assistant_message)
 
     history.append({"role": "assistant", "content": assistant_message})
 
@@ -519,18 +579,35 @@ async def send_message(request: Request, body: ChatRequest):
     store["chats"][chat_id] = chat
     save_store(request, store)
 
-    logger.info(f"[{session_id[:8]}] AI: {assistant_message[:100]}")
+    logger.info(f"[{session_id[:8]}] AI ({effective_mode}): {assistant_message[:100]}")
 
     return ChatResponse(
         reply=assistant_message,
         tokens_used=tokens_used,
         history_length=len(history),
         chat_id=chat_id,
-        chat_title=chat["title"]
+        chat_title=chat["title"],
+        tools_used=tools_used if tools_used else None,
+        agent_used=effective_mode if use_tools else None,
+        iterations=iterations if use_tools else None,
     )
 
 
-# ✅ Clear active chat history
+#  Server configuration (agents, MCP tools available)
+@app.get("/config")
+async def get_config():
+    from cortex_mcp.client import get_mcp_tool_definitions
+    mcp_tools = [t["function"]["name"] for t in get_mcp_tool_definitions()]
+    return {
+        "agent_mode":    AGENT_MODE,
+        "enable_tools":  ENABLE_TOOLS,
+        "model":         MODEL_NAME,
+        "agents":        ["none", "assistant", "research", "coder", "analyst", "coordinator"],
+        "mcp_tools":     mcp_tools,
+    }
+
+
+#  Clear active chat history
 @app.post("/clear", response_model=ClearResponse)
 async def clear(request: Request):
     store = get_store(request)
