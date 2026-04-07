@@ -110,16 +110,16 @@ export async function fetchCustomerOrders(
 export async function getPendingOrders(db: Database): Promise<any[]> {
   const query = `
     SELECT 
-        o.order_id,
-        o.order_date,
+        o.id as order_id,
+        o.created_at as order_date,
         o.total_amount,
         c.first_name || ' ' || c.last_name as customer_name,
         c.phone,
-        julianday('now') - julianday(o.order_date) as days_since_created
+        julianday('now') - julianday(o.created_at) as days_since_created
     FROM orders o
-    JOIN customers c ON o.customer_id = c.customer_id
+    JOIN customers c ON o.customer_id = c.id
     WHERE o.status = 'pending'
-    ORDER BY o.order_date
+    ORDER BY o.created_at
     `;
 
   const rows = await db.all(query, []);
@@ -244,6 +244,8 @@ export async function getHighValueOrders(
              o.shipping_state, o.shipping_zip
     ORDER BY o.total_amount DESC
     `;
+
+  console.log("query" , query)
 
   const rows = await db.all(query, [minAmount]);
   return rows;

@@ -1,9 +1,14 @@
+"""Hybrid retrieval example combining Voyage embeddings, BM25, and RRF ranking over report chunks."""
+
 from dotenv import load_dotenv
 import voyageai
 import math
 from typing import Optional, Any, List, Dict, Tuple, Callable
 import re
 from collections import Counter
+
+# Retriever implementation
+from typing import Any, List, Dict, Tuple, Protocol
 
 load_dotenv()
 
@@ -365,10 +370,6 @@ class BM25Index:
     def __repr__(self) -> str:
         return f"BM25VectorStore(count={len(self)}, k1={self.k1}, b={self.b}, index_built={self._index_built})"
     
-# Retriever implementation
-from typing import Any, List, Dict, Tuple, Protocol
-
-
 class SearchIndex(Protocol):
     def add_document(self, document: Dict[str, Any]) -> None: ...
 

@@ -1,7 +1,7 @@
 import { open } from "sqlite";
 import sqlite3 from "sqlite3";
-import { createSchema } from "./schema";
-import { getPendingOrders } from "./queries/order_queries";
+import { createSchema } from "./schema.js";
+import { getPendingOrders } from "./queries/order_queries.js";
 async function main() {
     const db = await open({
         filename: "ecommerce.db",

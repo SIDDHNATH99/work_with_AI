@@ -1,16 +1,17 @@
 [
   {
-    "prompt_inputs": {
-      "height": "178",
-      "weight": "82",
-      "goal": "Lose 8kg while maintaining muscle and improving cardiovascular fitness within 12 weeks with minimal time commitment"
-    },
-    "solution_criteria": [
-      "Workout plan includes 3-4 sessions per week of 30-45 minutes each, emphasizing compound exercises and high-intensity intervals suitable for busy schedules",
-      "Diet plan provides simple, grocery-delivery-friendly meals requiring minimal prep time with clear caloric targets for weight loss",
-      "Both workout and diet recommendations are realistic and actionable for someone working 60+ hours per week"
-    ],
-    "task_description": "Create a solid workout and diet plan for Working Professional",
-    "scenario": "Testing with a busy professional working 60+ hours per week with limited time for meal prep and gym access, requiring quick, efficient workouts and simple meal plans using grocery delivery services"
+    "task": "Create a Python function that extracts the AWS region from an S3 bucket URI (e.g., 's3://my-bucket-us-west-2/path/to/file')",
+    "format": "Python",
+    "solution_criteria": "Function should correctly extract region codes (e.g., 'us-west-2', 'eu-central-1') from S3 URIs and handle cases where region is not present in the URI"
+  },
+  {
+    "task": "Write a regular expression pattern to validate AWS IAM role ARNs (e.g., 'arn:aws:iam::123456789012:role/MyRole')",
+    "format": "Regex",
+    "solution_criteria": "Pattern should match valid IAM role ARNs with 12-digit account IDs and alphanumeric role names, and reject invalid formats"
+  },
+  {
+    "task": "Create a JSON CloudFormation template snippet that defines an S3 bucket with versioning enabled and server-side encryption",
+    "format": "JSON",
+    "solution_criteria": "JSON should be valid CloudFormation syntax with proper Type, Properties, and configuration for S3 bucket versioning and encryption settings"
   }
 ]

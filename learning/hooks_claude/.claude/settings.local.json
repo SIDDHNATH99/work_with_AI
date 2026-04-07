@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $PWD/hooks/query_hook.js",
+            "command": "node ./hooks/query_hook.js",
             "timeout": 300
           }
         ]
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq . > pre-log.json"
+            "command": "node ./hooks/log_hook.js pre-log.json"
           }
         ]
       }
@@ -36,11 +36,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_response.filePath // .tool_input.file_path // empty' | xargs -I {} npx --yes prettier --write {} 2>/dev/null || true"
+            "command": "node ./hooks/format_hook.js"
           },
           {
             "type": "command",
-            "command": "node $PWD/hooks/tsc.js"
+            "command": "node ./hooks/tsc.js"
           }
         ]
       },
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq . > post-log.json"
+            "command": "node ./hooks/log_hook.js post-log.json"
           }
         ]
       }

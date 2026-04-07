@@ -1,6 +1,7 @@
 import { Database } from "sqlite";
 
 export async function createSchema(db: Database, verbose: boolean) {
+  
   // 1. Customers table
   await db.exec(`
     CREATE TABLE IF NOT EXISTS customers (
@@ -195,4 +196,5 @@ export async function createSchema(db: Database, verbose: boolean) {
         FOREIGN KEY (customer_id) REFERENCES customers(id)
     )
     `);
+
 }
